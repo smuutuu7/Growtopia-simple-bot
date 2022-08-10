@@ -6,12 +6,8 @@ void SendPacket(int type, std::string packet, ENetPeer* peer)
     {
         ENetPacket* v3 = enet_packet_create(0, packet.length() + 5, 1);
         memcpy(v3->data, &type, 4);
-        //*(v3->data) = (DWORD)a1;
         memcpy((v3->data) + 4, packet.c_str(), packet.length());
-
-        //cout << std::hex << (int)(char)v3->data[3] << endl;
         enet_peer_send(peer, 0, v3);
-        std::string sendpackett = "[SendPacket] Type: " + std::to_string(type) + " packet: " + packet.c_str() + "\n";
     }
 
 }
@@ -71,7 +67,6 @@ void SendPacketRaw(int a1, void* PacketData, size_t PacketDataSize, void* a4, EN
             memcpy((char*)p->data + 4, PacketData, PacketDataSize);
             enet_peer_send(peer, 0, p);
         }
-        //std::string* packetDatastr = static_cast<std::string*>(PacketData);
     }
 }
 void SendPacketRaw2(int32_t type, gameupdatepacket_t* updatepacket, ENetPeer* peer, ENetHost* host) {
