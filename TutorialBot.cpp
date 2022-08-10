@@ -1,4 +1,4 @@
-#include "bot.h"
+#include "TutorialBot.h"
 
 void SendPacket(int type, std::string packet, ENetPeer* peer)
 {
