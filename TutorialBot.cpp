@@ -1,113 +1,200 @@
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <thread>
+#include <windows.h>
+
+#include "Struct.h"
+#include "Utils.h"
 #include "TutorialBot.h"
 
-void SendPacket(int type, std::string packet, ENetPeer* peer)
-{
-    if (peer)
-    {
-        ENetPacket* v3 = enet_packet_create(0, packet.length() + 5, 1);
-        memcpy(v3->data, &type, 4);
-        memcpy((v3->data) + 4, packet.c_str(), packet.length());
-        enet_peer_send(peer, 0, v3);
+
+void ClientData::Reset() {
+	ip = "";
+	port = 0;
+	
+	lmode = 0;
+	
+	meta = "";
+	
+	user = 0;
+	token = 0;
+	
+	uuid = "";
+	doorid = "";
+}
+
+void ClientData::Set(variantlist_t& var) {
+	port = var[1].get_int32();
+	
+	if (var[2].get_int32() != -1)
+		token = var[2].get_int32();
+	
+	user = var[3].get_int32();
+	
+	auto split = Utils::Split(var[4].get_string(), "|");
+	if (split.size() == 3) {
+		ip = split[0];
+		doorid = split[1];
+		if (split[2] != "-1")
+			uuid = split[2];
+	}
+	
+	lmode = var[5].get_int32();
+}
+
+
+std::string ClientData::Create() {
+	std::stringstream m_ret;
+	
+	if (name != "" && pass != "") {
+		m_ret << "tankIDName|" << name << "\n";
+		m_ret << "tankIDPass|" << pass << "\n";
+	}
+	
+	m_ret << "requestedName|" << "UmbrellaBot" << "\n";
+	m_ret << "f|" << personal.filter_innapropriate << "\n";
+	m_ret << "protocol|" << protocol << "\n";
+	m_ret << "game_version|" << game_version << "\n";
+	m_ret << "lmode|" << lmode << "\n";
+	m_ret << "cbits|" << personal.GetCbits() << "\n";
+	m_ret << "player_age|" << player_age << "\n";
+	m_ret << "GDPR|" << (int)1 << "\n";
+	m_ret << "category|" << "_-5100gid" << "\n";
+	m_ret << "tr|" << (int)4322 << "\n";
+	m_ret << "meta|" << meta << "\n";
+	m_ret << "fhash|" << (int)-716928004 << "\n";
+	m_ret << "rid|" << rid << "\n";
+	m_ret << "platformID|" << (int)4 << "\n";
+	m_ret << "deviceVersion|" << (int)0 << "\n";
+	m_ret << "country|" << "id" << "\n";
+	m_ret << "hash|" << (int)1225092726 << "\n";
+	m_ret << "mac|" << mac << "\n";
+	
+	if (user != 0 && token != 0) {
+		m_ret << "user|" << user << "\n";
+		m_ret << "token|" << token << "\n";
+	}
+	
+	if (uuid != "")
+		m_ret << "UUIDToken|" << uuid << "\n";
+	
+	if (doorid != "")
+		m_ret << "doorID|" << doorid << "\n";
+	
+	m_ret << "wk|NONE0" << "\n";
+	
+	return m_ret.str();
+}
+
+void TutorialBot::SendPacketRaw(int type, uint8_t* ptr, int flags) {
+	if (!peer)
+		return;
+	if (peer->state != ENET_PEER_STATE_CONNECTED)
+		return;
+	
+	int len = 4 + 56;
+	
+	char* packet = new char[len];
+	
+	memset(packet, 0, len);
+	
+	memcpy(packet, &type, 4);
+	memcpy(packet + 4, ptr, 56);
+	
+	ENetPacket* nPacket = enet_packet_create(packet, len, flags);
+	enet_peer_send(peer, 0, nPacket);
+	
+	delete[] packet;
+}
+
+
+void TutorialBot::SendPacket(int type, std::string const& text) {
+	if (!peer)
+		return;
+	if (peer->state != ENET_PEER_STATE_CONNECTED)
+		return;
+	
+	int len = 5 + text.length();
+	
+	char* packet = new char[len];
+	
+	memset(packet, 0, len);
+	
+	memcpy(packet, &type, 4);
+	memcpy(packet + 4, text.c_str(), text.length());
+	
+	ENetPacket* nPacket = enet_packet_create(packet, len, 1);
+	enet_peer_send(peer, 0, nPacket);
+	
+	delete[] packet;
+}
+
+void TutorialBot::OnReceive(ENetPacket* packet) {
+	if (packet->dataLength < 4 || !packet->data)
+		return;
+	int type = *(int*)packet->data;
+	switch (type) {
+		case 1: {
+			SendPacket(2, data.Create());
+		} break;
+		case 3:
+		case 5:
+		case 6: {
+			packet->data[packet->dataLength - 1] = '\x00';
+			OnTextPacket(type, (char*)(packet->data + 4));
+		} break;
+		case 4: {
+			OnTankPacket(type, packet->data + 4, packet->dataLength - 4);
+		} break;
+		default: {
+		} break;
+	}
+}
+
+void TutorialBot::OnTextPacket(int type, std::string text) {
+    if (text.find("action|logon_fail") != std::string::npos){
+		// disconnect
     }
-
 }
 
-void SendPacket2(int32_t type, std::string str, ENetPeer* peer, ENetHost* host) {
-    if (str.size()) {
-        ENetPacket* packet = enet_packet_create(0, str.size() + 5, ENET_PACKET_FLAG_RELIABLE);
-        gametextpacket_t* game_packet = reinterpret_cast<gametextpacket_t*>(packet->data);
-        game_packet->m_type = type;
-        memcpy(&game_packet->m_data, str.data(), str.size());
-        memset(&game_packet->m_data + str.size(), 0, 1);
-        enet_peer_send(peer, 0, packet);
-        enet_host_flush(host);
-    }
-}
 
-void SendVarList(variantlist_t& varlist, ENetPeer* peer, ENetHost* host) {
-    uint32_t data_size = 0;
-    std::shared_ptr<BYTE> data(reinterpret_cast<PBYTE>(varlist.serialize_to_mem(&data_size, nullptr)));
-    std::shared_ptr<gameupdatepacket_t> update_packet(reinterpret_cast<gameupdatepacket_t*>(malloc(sizeof(gameupdatepacket_t) + data_size)), free);
-    std::shared_ptr<gametextpacket_t> game_packet(reinterpret_cast<gametextpacket_t*>(malloc(sizeof(gametextpacket_t) + sizeof(gameupdatepacket_t) + data_size)), free);
-    if (game_packet.get() && update_packet.get()) {
-        ZeroMemory(update_packet.get(), sizeof(gameupdatepacket_t) + data_size);
-        ZeroMemory(game_packet.get(), sizeof(gametextpacket_t) + sizeof(gameupdatepacket_t) + data_size);
-        game_packet->m_type = NET_MESSAGE_GAME_PACKET;
-        update_packet->m_type = PACKET_CALL_FUNCTION;
-        update_packet->m_player_flags = -1;
-        update_packet->m_packet_flags |= 8;
-        update_packet->m_int_data = 0;
-        memcpy(&update_packet->m_data, data.get(), data_size);
-        update_packet->m_data_size = data_size;
-        memcpy(&game_packet->m_data, update_packet.get(), sizeof(gameupdatepacket_t) + data_size);
-        ENetPacket* packet = enet_packet_create(game_packet.get(), data_size + sizeof(gameupdatepacket_t), ENET_PACKET_FLAG_RELIABLE);
-        enet_peer_send(peer, 0, packet);
-        enet_host_flush(host);
-    }
-}
-void SendPacketRaw(int a1, void* PacketData, size_t PacketDataSize, void* a4, ENetPeer* peer, int PacketFlag)
-{
-    ENetPacket* p;
 
-    if (peer) // check if we have it setup
-    {
-        if (a1 == 4 && *((BYTE*)PacketData + 12) & 8)
-        {
-            p = enet_packet_create(0, PacketDataSize + *((DWORD*)PacketData + 13) + 5, PacketFlag);
-            int four = 4;
-            memcpy(p->data, &four, 4);
-            memcpy((char*)p->data + 4, PacketData, PacketDataSize);
-            memcpy((char*)p->data + PacketDataSize + 4, a4, *((DWORD*)PacketData + 13));
-            enet_peer_send(peer, 0, p);
-        }
-        else
-        {
-            p = enet_packet_create(0, PacketDataSize + 5, PacketFlag);
-            memcpy(p->data, &a1, 4);
-            memcpy((char*)p->data + 4, PacketData, PacketDataSize);
-            enet_peer_send(peer, 0, p);
-        }
-    }
-}
-void SendPacketRaw2(int32_t type, gameupdatepacket_t* updatepacket, ENetPeer* peer, ENetHost* host) {
-    if (peer && host && updatepacket) {
-        ENetPacket* packet = enet_packet_create(0, sizeof(gameupdatepacket_t) + 4, ENET_PACKET_FLAG_RELIABLE);
-        memcpy(packet->data, &type, 4);
-        memcpy(packet->data + 4, updatepacket, sizeof(gameupdatepacket_t));
-        enet_peer_send(peer, 0, packet);
-        enet_host_flush(host); //test it
-    }
-}
-
-PBYTE GetExtended(gameupdatepacket_t* packet) {
-    return (packet ? reinterpret_cast<PBYTE>(&packet->m_data_size) : nullptr);
-}
-
-int8_t GetPacketType(ENetPacket* packet) {
-    return (packet->dataLength > 3 ? *packet->data : 0);
-}
-
-std::string GetString(ENetPacket* packet) {
-    std::string strData;
-    gametankpacket_t* tank = reinterpret_cast<gametankpacket_t*>(packet->data);
-    if (tank) {
-        memset(packet->data + packet->dataLength - 1, 0, 1);
-        strData = static_cast<char*>(&tank->m_data);
-    }
-    return strData;
-    //return std::string(reinterpret_cast<char*>(packet->data + 4), packet->dataLength - 4);
-}
-
-gameupdatepacket_t* GetStruct(ENetPacket* packet) {
-    if (packet->dataLength > sizeof(gameupdatepacket_t) - 4) {
-        gametankpacket_t* tank = reinterpret_cast<gametankpacket_t*>(packet->data);
-        gameupdatepacket_t* gamepacket = reinterpret_cast<gameupdatepacket_t*>(packet->data + 4);
-        if (gamepacket->m_packet_flags & 8) {
-            return (packet->dataLength > gamepacket->m_data_size + 60 ? reinterpret_cast<gameupdatepacket_t*>(&tank->m_data) : nullptr);
-        }
-        else
-            gamepacket->m_data_size = 0;
-        return gamepacket;
-    }
-    return nullptr;
+void TutorialBot::OnTankPacket(int type, uint8_t* ptr, int size) {
+	TankPacketStruct* packet = (TankPacketStruct*)ptr;
+	switch (packet->type) {
+		case 0: {
+			// state
+		} break;
+		case 1: {
+			// call
+			variantlist_t var{};
+			var.serialize_from_mem(ptr + 56);
+			std::string func = var[0].get_string();
+			
+			
+			if (func == "OnSendToServer") {
+				data.Set(var); // data = clientdata
+				TankPacketStruct tank;
+				tank.type = 26;
+				tank.netid = -1;
+				SendPacketRaw(type, (uint8_t*)&tank);
+				Disconnect();
+			}
+            
+		} break;
+		case 22: {
+			TankPacketStruct tank;
+			tank.type = 21;
+			tank.x = 64;
+			tank.y = 64;
+			tank.value = packet->value + 5000;
+			SendPacketRaw(type, (uint8_t*)&tank);
+		} break;
+		default: {
+			
+		} break;
+	}
 }
