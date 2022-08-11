@@ -4,16 +4,42 @@
 #include <proton/variant.hpp>
 #include "GameUpdatePacket.h"
 
-class TutorialBot {
-public:
+struct ClientData {
+	std::string name = "";
+	std::string pass = "";
+	
+	std::string ip = "";
+	int port = 0;
+	
+	std::string meta = "";
+	std::string rid = "";
+	std::string mac = "";
+	
+	int user = 0;
+	int token = 0;
+	
+	std::string uuid = "";
+	std::string doorid = "";
+	
+	void Set(variantlist_t& var);
+	void Reset();
+	
+	std::string Create();
+}
 
-	void SendPacket(int type, std::string packet, ENetPeer* peer);
-	void SendPacket2(int32_t type, std::string packet, ENetPeer* peer, ENetHost* host);
-	void SendVarList(variantlist_t& varlist, ENetPeer* peer, ENetHost* host);
-	void SendPacketRaw(int a1, void* PacketData, size_t PacketDataSize, void* a4, ENetPeer* peer, int PacketFlag);
-	void SendPacketRaw2(int32_t type, gameupdatepacket_t* updatepacket, ENetPeer* peer, ENetHost* host);
-	PBYTE GetExtended(gameupdatepacket_t* packet);
-	int8_t GetPacketType(ENetPacket* packet);
-	std::string GetString(ENetPacket* packet);
-	gameupdatepacket_t* GetStruct(ENetPacket* packet);
+
+class TutorialBot {
+private:
+	ENetPeer* peer = NULL;
+	ENetHost* host = NULL;
+public:
+	void SendPacket(int type, std::string const& text);
+	void SendPacketRaw(int type, uint8_t* ptr, int flags = 1);
+	
+	
+	void OnReceive(ENetPacket* packet);
+	
+	void OnTextPacket(int type, std::string text);
+	void OnTankPacket(int type, uint8_t* ptr, int size);
 };
+extern std::vector<TutorialBot*> bots;
