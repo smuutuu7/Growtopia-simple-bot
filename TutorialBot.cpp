@@ -132,6 +132,19 @@ void TutorialBot::SendPacket(int type, std::string const& text) {
 	delete[] packet;
 }
 
+void TutorialBot::ConnectClient(std::string IP, int Port) {
+          
+}
+
+void TutorialBot::OnConnected() {
+     std::cout << "Client Connected, Succesfully" << endl;
+}
+
+void TutorialBot::OnDisconnected() {
+	std::cout << "Disconnected!.. Reconnecting..." << endl;
+	ConnectClient(IP, PORT);
+}
+
 void TutorialBot::OnReceive(ENetPacket* packet) {
 	if (packet->dataLength < 4 || !packet->data)
 		return;
