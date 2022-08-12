@@ -150,38 +150,30 @@ void TutorialBot::OnReceive(ENetPacket* packet) {
 		return;
 	int type = *(int*)packet->data;
 	switch (type) {
-		case 1: {
-			SendPacket(2, data.Create());
-		} break;
-		case 3:
-		case 5:
-		case 6: {
-			packet->data[packet->dataLength - 1] = '\x00';
-			OnTextPacket(type, (char*)(packet->data + 4));
-		} break;
-		case 4: {
-			OnTankPacket(type, packet->data + 4, packet->dataLength - 4);
-		} break;
-		default: {
-		} break;
+		case NET_MESSAGE_SERVER_HELLO: SendPacket(2, data.Create()); break;
+		case NET_MESSAGE_GENERIC_TEXT: OnGenericText(packet); break;
+		case NET_MESSAGE_GAME_MESSAGE: packet->data[packet->dataLength - 1] = '\x00'; OnTextPacket(type, (char*)(packet->data + 4)); break;
+		case NET_MESSAGE_GAME_PACKET: OnTankPacket(type, packet->data + 4, packet->dataLength - 4) break;
+		default: break;
 	}
 }
 
 void TutorialBot::OnTextPacket(int type, std::string text) {
     if (text.find("action|logon_fail") != std::string::npos){
-		// disconnect
+		OnDisconnected();
     }
 }
 
-
-
+void TutorialBot::OnGenericText(ENetPacket* packet) {
+     
+}
 void TutorialBot::OnTankPacket(int type, uint8_t* ptr, int size) {
 	TankPacketStruct* packet = (TankPacketStruct*)ptr;
 	switch (packet->type) {
-		case 0: {
+		case PACKET_STATE: {
 			// state
 		} break;
-		case 1: {
+		case PACKET_CALL_FUNCTION: {
 			// call
 			variantlist_t var{};
 			var.serialize_from_mem(ptr + 56);
@@ -206,9 +198,7 @@ void TutorialBot::OnTankPacket(int type, uint8_t* ptr, int size) {
 			tank.value = packet->value + 5000;
 			SendPacketRaw(type, (uint8_t*)&tank);
 		} break;
-		default: {
-			
-		} break;
+		default: break;
 	}
 }
 void TutorialBot::Event() {
@@ -218,7 +208,7 @@ void TutorialBot::Event() {
 				
 		case ENET_EVENT_TYPE_CONNECT: OnConnected(); break;
 		case ENET_EVENT_TYPE_DISCONNECT:  OnDisconnected(); return;
-		case ENET_EVENT_TYPE_RECEIVE: break;
+		case ENET_EVENT_TYPE_RECEIVE: OnReceive(Event->packet); break;
 		default: break;
 				
 		}
