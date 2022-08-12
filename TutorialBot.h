@@ -14,6 +14,7 @@ struct ClientData {
 	std::string meta = "";
 	std::string rid = "";
 	std::string mac = "";
+	std::string GameVersion = "3.96";
 	
 	int user = 0;
 	int token = 0;
@@ -33,6 +34,9 @@ private:
 	ENetPeer* peer = NULL;
 	ENetHost* host = NULL;
 public:
+	
+	void Warp(std::strng world);
+	
 	void SendPacket(int type, std::string const& text);
 	void SendPacketRaw(int type, uint8_t* ptr, int flags = 1);
 	
