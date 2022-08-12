@@ -8,8 +8,8 @@ struct ClientData {
 	std::string name = "";
 	std::string pass = "";
 	
-	std::string ip = "";
-	int port = 0;
+	std::string IP = "";
+	int PORT = 0;
 	
 	std::string meta = "";
 	std::string rid = "";
