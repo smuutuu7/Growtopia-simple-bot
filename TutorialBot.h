@@ -36,7 +36,8 @@ public:
 	void SendPacket(int type, std::string const& text);
 	void SendPacketRaw(int type, uint8_t* ptr, int flags = 1);
 	
-	
+	void OnConnected();
+	void OnDisconnected();
 	void OnReceive(ENetPacket* packet);
 	
 	void OnTextPacket(int type, std::string text);
