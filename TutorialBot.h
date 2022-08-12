@@ -42,6 +42,6 @@ public:
 	void OnTextPacket(int type, std::string text);
 	void OnTankPacket(int type, uint8_t* ptr, int size);
 	
-	void Host();
+	void Event();
 };
 extern std::vector<TutorialBot*> bots;
