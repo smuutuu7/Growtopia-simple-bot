@@ -198,3 +198,16 @@ void TutorialBot::OnTankPacket(int type, uint8_t* ptr, int size) {
 		} break;
 	}
 }
+void TutorialBot::Event() {
+    ENetEvent Event;
+	while (enet_host_service(host, &Event, 0) > 0) {
+		switch (Event.type) {
+				
+		case ENET_EVENT_TYPE_CONNECT: break;
+		case ENET_EVENT_TYPE_DISCONNECT:  return;
+		case ENET_EVENT_TYPE_RECEIVE: break;
+		default: break;
+				
+		}
+	}
+}
