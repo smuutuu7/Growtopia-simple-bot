@@ -42,6 +42,7 @@ public:
 	void OnReceive(ENetPacket* packet);
 	
 	void OnTextPacket(int type, std::string text);
+	void OnGenericText(ENetPacket* packet)
 	void OnTankPacket(int type, uint8_t* ptr, int size);
 	
 	void Event();
