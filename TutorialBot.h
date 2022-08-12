@@ -36,6 +36,7 @@ public:
 	void SendPacket(int type, std::string const& text);
 	void SendPacketRaw(int type, uint8_t* ptr, int flags = 1);
 	
+	void ConnectClient(std::string IP, int Port);
 	void OnConnected();
 	void OnDisconnected();
 	void OnReceive(ENetPacket* packet);
