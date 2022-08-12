@@ -18,6 +18,7 @@ struct ClientData {
 	
 	int user = 0;
 	int token = 0;
+	int lmode = 0;
 	
 	std::string uuid = "";
 	std::string doorid = "";
