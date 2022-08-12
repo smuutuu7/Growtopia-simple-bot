@@ -12,8 +12,8 @@
 
 
 void ClientData::Reset() {
-	ip = "";
-	port = 0;
+	IP = "";
+	PORT = 0;
 	
 	lmode = 0;
 	
@@ -142,7 +142,7 @@ void TutorialBot::OnConnected() {
 
 void TutorialBot::OnDisconnected() {
 	std::cout << "Disconnected!.. Reconnecting..." << endl;
-	ConnectClient(IP, PORT);
+	ConnectClient(ClientData::IP, ClientData::PORT);
 }
 
 void TutorialBot::OnReceive(ENetPacket* packet) {
@@ -194,7 +194,7 @@ void TutorialBot::OnTankPacket(int type, uint8_t* ptr, int size) {
 				tank.type = 26;
 				tank.netid = -1;
 				SendPacketRaw(type, (uint8_t*)&tank);
-				Disconnect();
+				OnDisconnected();
 			}
             
 		} break;
@@ -216,8 +216,8 @@ void TutorialBot::Event() {
 	while (enet_host_service(host, &Event, 0) > 0) {
 		switch (Event.type) {
 				
-		case ENET_EVENT_TYPE_CONNECT: break;
-		case ENET_EVENT_TYPE_DISCONNECT:  return;
+		case ENET_EVENT_TYPE_CONNECT: OnConnected(); break;
+		case ENET_EVENT_TYPE_DISCONNECT:  OnDisconnected(); return;
 		case ENET_EVENT_TYPE_RECEIVE: break;
 		default: break;
 				
